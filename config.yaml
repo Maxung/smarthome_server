@@ -1,0 +1,8 @@
+device1:
+ name: Bluefruit Temp
+ # no address, because macOS assigns them randomly
+ services:
+   - uuid: 0000181a-0000-1000-8000-00805f9b34fb
+     characteristics:
+       - uuid: 00002a6e-0000-1000-8000-00805f9b34fb
+       - uuid: 00002a6f-0000-1000-8000-00805f9b34fb

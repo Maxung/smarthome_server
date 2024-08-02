@@ -1,4 +1,5 @@
 #include "BLEManager.hpp"
+#include "ConfigHandler.hpp"
 #include <crow.h>
 #include <iostream>
 #include <memory>
@@ -17,23 +18,52 @@ crow::response getTemp(DataHandler *dataHandler) {
 
 int main(int, char **) {
 
-    std::shared_ptr<DataHandler> dataHandler =
-        std::make_shared<DataHandler>(DataHandler());
+    // std::shared_ptr<DataHandler> dataHandler =
+    //     std::make_shared<DataHandler>(DataHandler());
 
-    BLEManager bleManager = BLEManager(dataHandler);
+    Config config("../config.yaml");
+    auto devices = config.getDevices();
 
-    bleManager.run();
+    // BLEManager bleManager = BLEManager(dataHandler);
 
-    // std::this_thread::sleep_for(20s);
+    // bleManager.run();
 
-    crow::SimpleApp app;
+    // // std::this_thread::sleep_for(20s);
 
-    CROW_ROUTE(app, "/")
-    ([dataHandler](const crow::request &req) {
-        return getTemp(dataHandler.get());
-    });
+    // crow::SimpleApp app;
 
-    app.port(18080).run();
+    // CROW_ROUTE(app, "/")
+    // ([dataHandler](const crow::request &req) {
+    //     return getTemp(dataHandler.get());
+    // });
+
+    // app.port(18080).run();
+    // std::string configFilePath = "/Users/max/hygrometer_core/config.yaml";
+
+    // try {
+    //     Config config(configFilePath);
+    //     auto devices = config.getDevices();
+
+    //     // Display the parsed data
+    //     for (const auto &device : devices) {
+    //         std::cout << "Device: " << device.name << std::endl;
+    //         if (device.address.has_value()) {
+    //             std::cout << "  Address: " << device.address.value()
+    //                       << std::endl;
+    //         }
+    //         for (const auto &service : device.services) {
+    //             std::cout << "  Service UUID: " << service.uuid << std::endl;
+    //             for (const auto &characteristic : service.characteristics) {
+    //                 std::cout
+    //                     << "    Characteristic UUID: " << characteristic.uuid
+    //                     << std::endl;
+    //             }
+    //         }
+    //     }
+    // } catch (const std::exception &e) {
+    //     std::cerr << "Error: " << e.what() << std::endl;
+    //     return 1;
+    // }
 
     return EXIT_SUCCESS;
 }

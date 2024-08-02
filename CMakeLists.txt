@@ -8,12 +8,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(simpleble REQUIRED)
 find_package(RocksDB REQUIRED)
 find_package(crowcpp REQUIRED)
+find_package(yamlcpp REQUIRED)
 
 
 add_executable(hygrometer_core
     src/main.cpp
     src/BLEManager.cpp
     src/utils.cpp
-    src/DataHandler.cpp)
+    src/DataHandler.cpp
+    src/ConfigHandler.cpp)
 target_include_directories(hygrometer_core SYSTEM PRIVATE include)
-target_link_libraries(hygrometer_core simpleble::simpleble RocksDB::rocksdb Crow::Crow)
+target_link_libraries(hygrometer_core simpleble::simpleble RocksDB::rocksdb Crow::Crow yaml-cpp::yaml-cpp)
