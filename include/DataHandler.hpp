@@ -22,7 +22,8 @@ class DataHandler {
                               string characteristic);
         pair<double, int> readLastMeasurement(string deviceName,
                                               string characteristicUuid);
-        void readMeasurement();
+        vector<pair<double, int>>
+        readAllMeasurements(string deviceName, string characteristicUuid);
 
     private:
         unique_ptr<database> m_Db;

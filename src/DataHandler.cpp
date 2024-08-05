@@ -2,7 +2,7 @@
 #include <string>
 #include <utility>
 
-std::string kDBPath = "./hygrometer.sqlite";
+std::string kDBPath = "../hygrometer.sqlite";
 
 DataHandler::DataHandler(
     unordered_map<string, vector<pair<string, string>>> devices) {
@@ -66,6 +66,24 @@ pair<double, int> DataHandler::readLastMeasurement(string deviceName,
     }
     // If no matching key found
     return make_pair(0, 0);
+}
+
+vector<pair<double, int>>
+DataHandler::readAllMeasurements(string deviceName, string characteristicUuid) {
+    vector<pair<double, int>> res;
+    for (auto &&row :
+         *m_Db << "SELECT m.value, strftime('%s', m.timestamp) AS timestamp "
+                  "FROM Measurements m JOIN Characteristics c ON "
+                  "m.characteristicUuid = c.characteristicUuid "
+                  "WHERE c.deviceName = ? AND c.characteristicUuid = ?;"
+               << deviceName << characteristicUuid) {
+        double value;
+        int timestamp;
+        row >> value >> timestamp;
+        res.push_back(make_pair(value, timestamp));
+    }
+
+    return res;
 }
 
 int convertBytesToInt(const std::string &bytes) {
