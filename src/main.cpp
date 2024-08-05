@@ -7,63 +7,60 @@
 
 using namespace std::chrono_literals;
 
-crow::response getTemp(DataHandler *dataHandler) {
-    std::string lastTemp = dataHandler->readLastMeasurement("temperature-");
-    std::string lastHumd = dataHandler->readLastMeasurement("humidity-");
-    crow::json::wvalue x(
-        {{"test",
-          {{"temp", std::stod(lastTemp)}, {"humd", std::stod(lastHumd)}}}});
-    return crow::response(x);
+crow::response getLastMeasurementsOnly(
+    DataHandler *dataHandler,
+    unordered_map<string, vector<pair<string, string>>> &devices) {
+    crow::json::wvalue result;
+
+    // Iterate through each device
+    for (auto &d : devices) {
+        const string &deviceName = d.first;
+        crow::json::wvalue deviceJson;
+
+        // Iterate through each characteristic for the device
+        for (auto &c : d.second) {
+            const string &characteristicName = c.second;
+
+            // Read the last measurement for this characteristic
+            auto res = dataHandler->readLastMeasurement(deviceName,
+                                                        characteristicName);
+
+            double value = res.first;
+            long long timestamp = res.second;
+
+            crow::json::wvalue characteristicJson;
+            characteristicJson["value"] = value;
+            characteristicJson["timestamp"] = timestamp;
+
+            deviceJson[characteristicName] = std::move(characteristicJson);
+        }
+        result[deviceName] = std::move(deviceJson);
+    }
+    return crow::response(result);
 }
 
 int main(int, char **) {
 
-    std::shared_ptr<DataHandler> dataHandler =
-        std::make_shared<DataHandler>(DataHandler());
-
     Config config("../config.yaml");
     auto devices = config.getDevices();
+
+    std::shared_ptr<DataHandler> dataHandler =
+        std::make_shared<DataHandler>(DataHandler(devices));
 
     BLEManager bleManager = BLEManager(dataHandler, devices);
 
     bleManager.run();
 
-    // // std::this_thread::sleep_for(20s);
+    // std::this_thread::sleep_for(20s);
 
-    // crow::SimpleApp app;
+    crow::SimpleApp app;
 
-    // CROW_ROUTE(app, "/")
-    // ([dataHandler](const crow::request &req) {
-    //     return getTemp(dataHandler.get());
-    // });
+    CROW_ROUTE(app, "/")
+    ([dataHandler, &devices](const crow::request &req) {
+        return getLastMeasurementsOnly(dataHandler.get(), devices);
+    });
 
-    // app.port(18080).run();
-    // std::string configFilePath = "/Users/max/hygrometer_core/config.yaml";
-
-    // try {
-    //     Config config(configFilePath);
-    //     auto devices = config.getDevices();
-
-    //     // Display the parsed data
-    //     for (const auto &device : devices) {
-    //         std::cout << "Device: " << device.name << std::endl;
-    //         if (device.address.has_value()) {
-    //             std::cout << "  Address: " << device.address.value()
-    //                       << std::endl;
-    //         }
-    //         for (const auto &service : device.services) {
-    //             std::cout << "  Service UUID: " << service.uuid << std::endl;
-    //             for (const auto &characteristic : service.characteristics) {
-    //                 std::cout
-    //                     << "    Characteristic UUID: " << characteristic.uuid
-    //                     << std::endl;
-    //             }
-    //         }
-    //     }
-    // } catch (const std::exception &e) {
-    //     std::cerr << "Error: " << e.what() << std::endl;
-    //     return 1;
-    // }
+    app.port(18080).run();
 
     return EXIT_SUCCESS;
 }

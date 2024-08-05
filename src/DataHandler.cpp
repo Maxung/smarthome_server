@@ -1,57 +1,71 @@
 #include "DataHandler.hpp"
 #include <string>
+#include <utility>
 
-std::string kDBPath = "./rocksdb_hygrometer";
+std::string kDBPath = "./hygrometer.sqlite";
 
-DataHandler::DataHandler() {
-    DB *db;
+DataHandler::DataHandler(
+    unordered_map<string, vector<pair<string, string>>> devices) {
+    m_Db = make_unique<database>(kDBPath);
 
-    Options options;
-    // Optimize RocksDB. This is the easiest way to get RocksDB to perform well
-    options.IncreaseParallelism();
-    options.OptimizeLevelStyleCompaction();
-    // create the DB if it's not already present
-    options.create_if_missing = true;
+    *m_Db << "create table if not exists devices ("
+             "deviceName text primary key);";
 
-    Status s = DB::Open(options, kDBPath, &db);
-    if (!s.ok())
-        throw DatabaseException(s.ToString());
+    *m_Db << "create table if not exists characteristics ("
+             "characteristicUuid text primary key,"
+             "deviceName text,"
+             "foreign key (deviceName) references devices(deviceName));";
 
-    // make the db ptr unique by giving directly via reset
-    m_Db.reset(db);
-}
+    *m_Db << "create table if not exists measurements ("
+             "measurementID integer primary key autoincrement,"
+             "characteristicUuid TEXT,"
+             "value real not null,"
+             "timestamp datetime default current_timestamp,"
+             "foreign key (characteristicUuid) references "
+             "characteristics(characteristicUuid));";
 
-void DataHandler::writeMeasurement(string &byteArray, const char *prefix) {
-    uint64_t timestamp = static_cast<uint64_t>(time(nullptr));
-    float temperature = convertTemperature(byteArray);
-    cout << temperature << endl;
-    Status s = m_Db->Put(WriteOptions(), prefix + to_string(timestamp),
-                         to_string(temperature));
-    if (!s.ok())
-        throw DatabaseException(s.ToString());
-}
+    for (auto &device : devices) {
+        *m_Db << "insert or ignore into devices (deviceName) values (?);"
+              << device.first;
 
-string DataHandler::readLastMeasurement(const char *prefix) {
-    rocksdb::ReadOptions readOptions;
-    std::unique_ptr<rocksdb::Iterator> it(m_Db->NewIterator(readOptions));
-
-    // Seek to the last key that starts with the given prefix
-    string upperBound =
-        string(prefix) + char(255); // 255 is the highest ASCII character
-    it->SeekForPrev(upperBound);
-
-    while (it->Valid()) {
-        // Check if the current key starts with the prefix
-        if (it->key().starts_with(prefix)) {
-            cout << it->value().ToString() << endl;
-            return it->value().ToString();
+        for (auto &p : device.second) {
+            *m_Db
+                << "insert or ignore into characteristics (characteristicUuid, "
+                   "deviceName) values (?,?)"
+                << p.second << device.first;
         }
-        // Move to the previous key
-        it->Prev();
     }
 
+    // make the db ptr unique by giving directly via reset
+    // m_Db.reset(&db);
+}
+
+void DataHandler::writeMeasurement(string &byteArray, string deviceName,
+                                   string characteristic) {
+    uint64_t timestamp = static_cast<uint64_t>(time(nullptr));
+    float value = convertByteArray(byteArray);
+    *m_Db
+        << "insert into measurements (characteristicUuid, value) values (?, ?);"
+        << characteristic << value;
+}
+
+pair<double, int> DataHandler::readLastMeasurement(string deviceName,
+                                                   string characteristicUuid) {
+
+    for (auto &&row :
+         *m_Db << "SELECT m.value, strftime('%s', m.timestamp) AS timestamp "
+                  "FROM Measurements m JOIN Characteristics c ON "
+                  "m.characteristicUuid = c.characteristicUuid "
+                  "WHERE c.deviceName = ? AND c.characteristicUuid = ? "
+                  "ORDER BY timestamp DESC LIMIT 1;"
+               << deviceName << characteristicUuid) {
+        double value;
+        int timestamp;
+        row >> value >> timestamp;
+        return make_pair(value, timestamp);
+    }
     // If no matching key found
-    return string("");
+    return make_pair(0, 0);
 }
 
 int convertBytesToInt(const std::string &bytes) {
@@ -71,7 +85,7 @@ int convertBytesToInt(const std::string &bytes) {
     return result;
 }
 
-float DataHandler::convertTemperature(string &byteArray) {
+float DataHandler::convertByteArray(string &byteArray) {
     int tempInt = convertBytesToInt(byteArray);
     return static_cast<float>(tempInt) / 100.0;
 }

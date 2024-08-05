@@ -11,23 +11,20 @@
 #include <string>
 #include <vector>
 
-using ROCKSDB_NAMESPACE::DB;
-using ROCKSDB_NAMESPACE::Options;
-using ROCKSDB_NAMESPACE::PinnableSlice;
-using ROCKSDB_NAMESPACE::ReadOptions;
-using ROCKSDB_NAMESPACE::Status;
-using ROCKSDB_NAMESPACE::WriteBatch;
-using ROCKSDB_NAMESPACE::WriteOptions;
 using namespace std;
+using namespace sqlite;
 
 class DataHandler {
     public:
-        DataHandler();
-        void writeMeasurement(string &byteArray, const char *prefix);
-        string readLastMeasurement(const char *prefix);
+        DataHandler(
+            unordered_map<string, vector<pair<string, string>>> devices);
+        void writeMeasurement(string &byteArray, string deviceName,
+                              string characteristic);
+        pair<double, int> readLastMeasurement(string deviceName,
+                                              string characteristicUuid);
         void readMeasurement();
 
     private:
-        unique_ptr<DB> m_Db;
-        float convertTemperature(string &byteArray);
+        unique_ptr<database> m_Db;
+        float convertByteArray(string &byteArray);
 };

@@ -19,4 +19,4 @@ add_executable(hygrometer_core
     src/ConfigHandler.cpp)
 target_include_directories(hygrometer_core SYSTEM PRIVATE include)
 target_include_directories(hygrometer_core PRIVATE ${modernsqlite_SOURCE_DIR}/hdr)
-target_link_libraries(hygrometer_core simpleble::simpleble RocksDB::rocksdb Crow::Crow yaml-cpp::yaml-cpp)
+target_link_libraries(hygrometer_core simpleble::simpleble RocksDB::rocksdb Crow::Crow yaml-cpp::yaml-cpp sqlite3)

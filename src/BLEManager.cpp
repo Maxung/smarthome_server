@@ -147,7 +147,8 @@ void BLEManager::subscribeToCharacteristic() {
             subscribed = info.first->notify(
                 std::get<0>(bleTuple), std::get<1>(bleTuple),
                 [&](SimpleBLE::ByteArray bytes) {
-                    m_dataHandler->writeMeasurement(bytes, "temperature-");
+                    m_dataHandler->writeMeasurement(bytes, peripheral.first,
+                                                    std::get<1>(bleTuple));
                 });
         }
     }
