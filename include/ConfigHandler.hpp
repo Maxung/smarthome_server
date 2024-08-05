@@ -3,26 +3,18 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-struct Characteristic {
-        std::string uuid;
-};
+#ifndef CONFIGHPP
+#define CONFIGHPP
 
-struct Service {
-        std::string uuid;
-        std::vector<Characteristic> characteristics;
-};
-
-struct Device {
-        std::string name;
-        std::optional<std::string> address;
-        std::vector<Service> services;
-};
+using namespace std;
 
 class Config {
     public:
-        explicit Config(const std::string &filepath);
-        std::vector<Device> getDevices() const;
+        explicit Config(const string &filepath);
+        unordered_map<string, vector<pair<string, string>>> getDevices() const;
 
     private:
-        std::vector<Device> devices;
+        unordered_map<string, vector<pair<string, string>>> m_Devices;
 };
+
+#endif

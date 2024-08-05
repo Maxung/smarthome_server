@@ -1,13 +1,20 @@
 #include "BLEManager.hpp"
+#include "simpleble/PeripheralSafe.h"
 #include "utils.hpp"
 #include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 BLEManager::~BLEManager() {
-    for (auto p : m_SubscribedCharacteristics) {
-        m_Peripheral->unsubscribe(p.first, p.second);
+    for (auto &p : m_Peripherals) {
+        auto &peripheral = p.second.first;
+        for (auto &info : p.second.second) {
+            const auto [serviceUuid, characteristicUuid, subscribed] = info;
+            peripheral->unsubscribe(serviceUuid, characteristicUuid);
+        }
+        peripheral->disconnect();
     }
-    m_Peripheral->disconnect();
 }
 
 void BLEManager::selectAdapter() {
@@ -40,10 +47,15 @@ void BLEManager::findAndConnectPeripheral() {
                   << peripheral.address().value_or("UNKNOWN") << "]"
                   << std::endl;
 
-        if (peripheral.identifier().value_or("UNKNOWN").contains(
-                "Bluefruit Temp")) {
-            peripherals.push_back(peripheral);
-            m_Adapter->scan_stop();
+        auto peripheralName = peripheral.identifier().value_or("UNKNOWN");
+
+        bool found =
+            std::ranges::any_of(m_Devices, [&peripheralName](const auto &pair) {
+                return pair.first == peripheralName;
+            });
+
+        if (found) {
+            m_Peripheralsss.push_back(peripheral);
         }
     });
 
@@ -52,92 +64,93 @@ void BLEManager::findAndConnectPeripheral() {
     m_Adapter->set_callback_on_scan_stop(
         []() { std::cout << "Scan stopped." << std::endl; });
     // Scan for 5 seconds and return.
-    // m_Adapter->scan_for(5000);
-    m_Adapter->scan_start();
+    m_Adapter->scan_for(2000);
+    // m_Adapter->scan_start();
 
-    std::this_thread::sleep_for(2s);
+    // while (m_Adapter->get_paired_peripherals()
+    //            .value_or(vector<SimpleBLE::Safe::Peripheral>())
+    //            .size() != m_Devices.size()) {
+    //     this_thread::sleep_for(1s);
+    // }
+    // m_Adapter->scan_stop();
 
-    for (size_t i = 0; i < peripherals.size(); i++) {
-        if (peripherals[i].identifier().value_or("UNKNOWN") ==
-            "Bluefruit Temp") {
-            m_Peripheral =
-                std::make_unique<SimpleBLE::Safe::Peripheral>(peripherals[i]);
+    for (auto &peripheral : m_Peripheralsss) {
+        auto peripheralName = peripheral.identifier().value_or("UNKNOWN");
+
+        auto currDevice = m_Devices.at(peripheralName);
+        vector<tuple<SimpleBLE::BluetoothUUID, SimpleBLE::BluetoothUUID, bool>>
+            characteristicsTuple;
+        for (auto &sp : currDevice) {
+            characteristicsTuple.push_back(
+                make_tuple(sp.first, sp.second, false));
         }
+        m_Peripherals[peripheralName] =
+            make_pair(std::make_unique<SimpleBLE::Safe::Peripheral>(peripheral),
+                      characteristicsTuple);
+        bool connect_was_successful = peripheral.connect();
+
+        cout << "Trying to connect to " << peripheralName << endl;
+
+        if (!connect_was_successful) {
+            std::cout << "Failed to connect to "
+                      << peripheral.identifier().value_or("UNKNOWN") << " ["
+                      << peripheral.address().value_or("UNKNOWN") << "]"
+                      << std::endl;
+            throw PeripheralConnectionException(
+                "Connection attempt was unsuccessfull.");
+        }
+
+        std::cout << "Successfully connected, listing services." << std::endl;
     }
 
-    if (m_Peripheral == nullptr) {
-        throw PeripheralConnectionException("No fitting peripheral was found.");
+    if (m_Peripherals.empty()) {
+        throw PeripheralConnectionException(
+            "No fitting peripherals were found.");
     }
-
-    // If the connection wasn't successful, no exception will be thrown.
-    bool connect_was_successful = m_Peripheral->connect();
-
-    if (!connect_was_successful) {
-        std::cout << "Failed to connect to "
-                  << m_Peripheral->identifier().value_or("UNKNOWN") << " ["
-                  << m_Peripheral->address().value_or("UNKNOWN") << "]"
-                  << std::endl;
-        return throw PeripheralConnectionException(
-            "Connection attempt was unsuccessfull.");
-    }
-
-    std::cout << "Successfully connected, listing services." << std::endl;
 }
 
 void BLEManager::subscribeToCharacteristic() {
-    std::cout << "Successfully connected, listing services." << std::endl;
-    auto services = m_Peripheral->services();
+    for (auto &peripheral : m_Peripherals) {
+        auto &info = peripheral.second;
+        auto services = info.first->services();
 
-    if (!services.has_value()) {
-        throw CharacteristicSubscriptionException("Failed to list services");
-    }
+        if (!services.has_value()) {
+            throw CharacteristicSubscriptionException(
+                "Failed to list services");
+        }
 
-    for (auto service : *services) {
-        if (service.uuid() == ENVIRONMENT_SERVICE) {
-            std::cout << "Service: " << service.uuid() << std::endl;
-            vector<string> characteristicsUuids;
-            for (auto characteristic : service.characteristics()) {
-                std::cout << "  Characteristic: " << characteristic.uuid()
-                          << std::endl;
-                std::cout << "    capabilities:" << std::endl;
+        for (auto service : *services) {
+            if (service.uuid() == ENVIRONMENT_SERVICE) {
+                std::cout << "Service: " << service.uuid() << std::endl;
+                vector<string> characteristicsUuids;
+                for (auto characteristic : service.characteristics()) {
+                    std::cout << "  Characteristic: " << characteristic.uuid()
+                              << std::endl;
+                    std::cout << "    capabilities:" << std::endl;
 
-                for (auto c : characteristic.capabilities()) {
-                    std::cout << "      " << c << std::endl;
+                    for (auto c : characteristic.capabilities()) {
+                        std::cout << "      " << c << std::endl;
+                    }
+
+                    characteristicsUuids.push_back(characteristic.uuid());
                 }
-
-                characteristicsUuids.push_back(characteristic.uuid());
+                // if (Utils::contains_all(m_CharacteristicsToSubscribe,
+                //                         characteristicsUuids))
+                //     throw CharacteristicSubscriptionException(
+                //         "Couldn't find all required characteristics.");
             }
-            // if (Utils::contains_all(m_CharacteristicsToSubscribe,
-            //                         characteristicsUuids))
-            //     throw CharacteristicSubscriptionException(
-            //         "Couldn't find all required characteristics.");
+        }
+
+        for (auto &bleTuple : info.second) {
+            auto &subscribed =
+                std::get<2>(bleTuple); // Get a reference to 'subscribed'
+            subscribed = info.first->notify(
+                std::get<0>(bleTuple), std::get<1>(bleTuple),
+                [&](SimpleBLE::ByteArray bytes) {
+                    m_dataHandler->writeMeasurement(bytes, "temperature-");
+                });
         }
     }
-
-    // temperature notify
-    bool subscribed = m_Peripheral->notify(
-        SimpleBLE::BluetoothUUID(ENVIRONMENT_SERVICE),
-        SimpleBLE::BluetoothUUID(TEMPERATURE_CHARACTERISTIC),
-        [&](SimpleBLE::ByteArray bytes) {
-            m_dataHandler->writeMeasurement(bytes, "temperature-");
-        });
-
-    if (subscribed)
-        m_SubscribedCharacteristics.push_back(
-            make_pair(SimpleBLE::BluetoothUUID(ENVIRONMENT_SERVICE),
-                      m_CharacteristicsToSubscribe.at(0)));
-
-    subscribed = m_Peripheral->notify(
-        SimpleBLE::BluetoothUUID(ENVIRONMENT_SERVICE),
-        SimpleBLE::BluetoothUUID(HUMIDITY_CHARACTERISTIC),
-        [&](SimpleBLE::ByteArray bytes) {
-            m_dataHandler->writeMeasurement(bytes, "humidity-");
-        });
-
-    if (subscribed)
-        m_SubscribedCharacteristics.push_back(
-            make_pair(SimpleBLE::BluetoothUUID(ENVIRONMENT_SERVICE),
-                      m_CharacteristicsToSubscribe.at(1)));
 }
 
 void BLEManager::run() {

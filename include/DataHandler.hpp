@@ -2,6 +2,7 @@
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "rocksdb/slice.h"
+#include "sqlite_modern_cpp.h"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>

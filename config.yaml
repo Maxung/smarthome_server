@@ -1,4 +1,4 @@
-device1:
+bluefruit:
  name: Bluefruit Temp
  # no address, because macOS assigns them randomly
  services:

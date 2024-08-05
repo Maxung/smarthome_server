@@ -18,15 +18,15 @@ crow::response getTemp(DataHandler *dataHandler) {
 
 int main(int, char **) {
 
-    // std::shared_ptr<DataHandler> dataHandler =
-    //     std::make_shared<DataHandler>(DataHandler());
+    std::shared_ptr<DataHandler> dataHandler =
+        std::make_shared<DataHandler>(DataHandler());
 
     Config config("../config.yaml");
     auto devices = config.getDevices();
 
-    // BLEManager bleManager = BLEManager(dataHandler);
+    BLEManager bleManager = BLEManager(dataHandler, devices);
 
-    // bleManager.run();
+    bleManager.run();
 
     // // std::this_thread::sleep_for(20s);
 
