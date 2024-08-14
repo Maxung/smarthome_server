@@ -2,10 +2,12 @@
 #include <string>
 #include <utility>
 
-std::string kDBPath = "../hygrometer.sqlite";
+std::string kDBPath = "../smarthome.sqlite";
 
 DataHandler::DataHandler(
     unordered_map<string, vector<pair<string, string>>> devices) {
+
+    cout << "Creating/Opening database." << endl;
     m_Db = make_unique<database>(kDBPath);
 
     *m_Db << "create table if not exists devices ("
@@ -35,9 +37,6 @@ DataHandler::DataHandler(
                 << p.second << device.first;
         }
     }
-
-    // make the db ptr unique by giving directly via reset
-    // m_Db.reset(&db);
 }
 
 void DataHandler::writeMeasurement(string &byteArray, string deviceName,
@@ -86,24 +85,7 @@ DataHandler::readAllMeasurements(string deviceName, string characteristicUuid) {
     return res;
 }
 
-int convertBytesToInt(const std::string &bytes) {
-    std::stringstream ss;
-    for (auto b : bytes) {
-        ss << std::hex << (uint32_t)((uint8_t)b);
-    }
-    // Create a stringstream to convert hex string to int
-    int result = 0;
-    ss >> result;
-
-    // Check for conversion errors
-    if (ss.fail()) {
-        throw std::invalid_argument("Invalid hex string.");
-    }
-
-    return result;
-}
-
 float DataHandler::convertByteArray(string &byteArray) {
-    int tempInt = convertBytesToInt(byteArray);
+    int tempInt = std::stoi(byteArray, nullptr, 16);
     return static_cast<float>(tempInt) / 100.0;
 }

@@ -1,10 +1,5 @@
 #include "BLEManager.hpp"
 #include "simpleble/PeripheralSafe.h"
-#include "utils.hpp"
-#include <string>
-#include <tuple>
-#include <utility>
-#include <vector>
 
 BLEManager::~BLEManager() {
     for (auto &p : m_Peripherals) {
@@ -64,15 +59,7 @@ void BLEManager::findAndConnectPeripheral() {
     m_Adapter->set_callback_on_scan_stop(
         []() { std::cout << "Scan stopped." << std::endl; });
     // Scan for 5 seconds and return.
-    m_Adapter->scan_for(2000);
-    // m_Adapter->scan_start();
-
-    // while (m_Adapter->get_paired_peripherals()
-    //            .value_or(vector<SimpleBLE::Safe::Peripheral>())
-    //            .size() != m_Devices.size()) {
-    //     this_thread::sleep_for(1s);
-    // }
-    // m_Adapter->scan_stop();
+    m_Adapter->scan_for(5000);
 
     for (auto &peripheral : m_Peripheralsss) {
         auto peripheralName = peripheral.identifier().value_or("UNKNOWN");
@@ -119,35 +106,14 @@ void BLEManager::subscribeToCharacteristic() {
                 "Failed to list services");
         }
 
-        for (auto service : *services) {
-            if (service.uuid() == ENVIRONMENT_SERVICE) {
-                std::cout << "Service: " << service.uuid() << std::endl;
-                vector<string> characteristicsUuids;
-                for (auto characteristic : service.characteristics()) {
-                    std::cout << "  Characteristic: " << characteristic.uuid()
-                              << std::endl;
-                    std::cout << "    capabilities:" << std::endl;
-
-                    for (auto c : characteristic.capabilities()) {
-                        std::cout << "      " << c << std::endl;
-                    }
-
-                    characteristicsUuids.push_back(characteristic.uuid());
-                }
-                // if (Utils::contains_all(m_CharacteristicsToSubscribe,
-                //                         characteristicsUuids))
-                //     throw CharacteristicSubscriptionException(
-                //         "Couldn't find all required characteristics.");
-            }
-        }
-
         for (auto &bleTuple : info.second) {
             auto &subscribed =
                 std::get<2>(bleTuple); // Get a reference to 'subscribed'
             subscribed = info.first->notify(
                 std::get<0>(bleTuple), std::get<1>(bleTuple),
                 [&](SimpleBLE::ByteArray bytes) {
-                    m_dataHandler->writeMeasurement(bytes, peripheral.first,
+                    string hexString = bytes.toHex();
+                    m_dataHandler->writeMeasurement(hexString, peripheral.first,
                                                     std::get<1>(bleTuple));
                 });
         }

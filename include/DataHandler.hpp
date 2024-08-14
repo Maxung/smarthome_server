@@ -1,3 +1,6 @@
+#ifndef DATAHANDLERHPP
+#define DATAHANDLERHPP
+
 #include "DataHandlerException.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
@@ -29,3 +32,5 @@ class DataHandler {
         unique_ptr<database> m_Db;
         float convertByteArray(string &byteArray);
 };
+
+#endif

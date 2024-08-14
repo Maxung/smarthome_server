@@ -1,3 +1,6 @@
+#ifndef BLEEXCEPTIONHPP
+#define BLEEXCEPTIONHPP
+
 #include <stdexcept>
 #include <string>
 
@@ -24,3 +27,5 @@ class CharacteristicSubscriptionException : public BLEException {
         explicit CharacteristicSubscriptionException(const std::string &message)
             : BLEException(message) {}
 };
+
+#endif

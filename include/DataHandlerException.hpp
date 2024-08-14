@@ -1,3 +1,6 @@
+#ifndef DATAHANDLEREXCEPTIONHPP
+#define DATAHANDLEREXCEPTIONHPP
+
 #include <stdexcept>
 #include <string>
 
@@ -18,3 +21,5 @@ class DataConversionException : public DataHandlerException {
         explicit DataConversionException(const std::string &message)
             : DataHandlerException(message) {}
 };
+
+#endif

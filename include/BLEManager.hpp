@@ -1,9 +1,10 @@
-#include "BLEConfig.hpp"
+#ifndef BLEMANAGERHPP
+#define BLEMANAGERHPP
+
 #include "BLEException.hpp"
 #include "ConfigHandler.hpp"
 #include "DataHandler.hpp"
 #include "simpleble/Types.h"
-#include "utils.hpp"
 #include <iostream>
 #include <memory>
 #include <simpleble/SimpleBLE.h>
@@ -19,7 +20,9 @@ class BLEManager {
     public:
         BLEManager(shared_ptr<DataHandler> &dataHandler,
                    unordered_map<string, vector<pair<string, string>>> &devices)
-            : m_dataHandler{dataHandler}, m_Devices{devices} {}
+            : m_dataHandler{dataHandler}, m_Devices{devices} {
+            cout << "Starting BLE manager." << endl;
+        }
         ~BLEManager();
         void run();
 
@@ -31,9 +34,6 @@ class BLEManager {
                            vector<tuple<SimpleBLE::BluetoothUUID,
                                         SimpleBLE::BluetoothUUID, bool>>>>
             m_Peripherals;
-        vector<SimpleBLE::BluetoothUUID> m_CharacteristicsToSubscribe = {
-            SimpleBLE::BluetoothUUID(TEMPERATURE_CHARACTERISTIC),
-            SimpleBLE::BluetoothUUID(HUMIDITY_CHARACTERISTIC)};
         unique_ptr<Adapter> m_Adapter;
         vector<Peripheral> m_Peripheralsss;
         vector<pair<SimpleBLE::BluetoothUUID, SimpleBLE::BluetoothUUID>>
@@ -43,3 +43,5 @@ class BLEManager {
         void findAndConnectPeripheral();
         void subscribeToCharacteristic();
 };
+
+#endif

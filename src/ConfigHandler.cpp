@@ -1,9 +1,7 @@
 #include "ConfigHandler.hpp"
-#include <fstream>
-#include <utility>
-#include <yaml-cpp/yaml.h>
 
 Config::Config(const string &filepath) {
+    std::cout << "Reading config file." << std::endl;
     // Open and parse the YAML file
     YAML::Node config = YAML::LoadFile(filepath);
 
