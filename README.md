@@ -11,4 +11,4 @@ This project is a C++23 implementation that manages Bluetooth Low Energy (BLE) d
 - **Companion App:** A companion app, implemented with Flutter, can visualize the data in charts and show real-time updates.
 
 ## Getting Started
-To use this codebase, ensure you have a C++23 compatible compiler and the necessary dependencies installed. The YAML configuration file allows you to specify the BLE devices to connect to. Once set up, the server will automatically manage these devices, store data, and make it accessible over the local network. 
+To use this codebase, ensure you have a C++23 compatible compiler and the necessary dependencies installed. As everything is downloaded and configured on compile time, only SQLite3 is needed. The YAML configuration file allows you to specify the BLE devices to connect to. Once set up, the server will automatically manage these devices, store data, and make it accessible over the local network. 
